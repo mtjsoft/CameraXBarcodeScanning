@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -32,7 +33,7 @@ import com.gyf.immersionbar.ImmersionBar
  */
 public class ScanningActivity : AppCompatActivity() {
 
-    private val TAG: String = ScanningActivity::javaClass.name
+    private val TAG: String = "ScanningActivity"
 
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private lateinit var previewView: PreviewView
@@ -74,7 +75,6 @@ public class ScanningActivity : AppCompatActivity() {
     /**
      * 选择相机并绑定生命周期和用例
      */
-    @SuppressLint("UnsafeOptInUsageError")
     private fun bindPreview(cameraProvider: ProcessCameraProvider) {
         val preview: Preview = Preview.Builder()
             .build()
@@ -91,22 +91,22 @@ public class ScanningActivity : AppCompatActivity() {
             .build()
         imageAnalysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, { imageProxy ->
             try {
-                val mediaImage = imageProxy.image
-                if (mediaImage != null) {
-                    val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                    // Pass image to an ML Kit Vision API
-                    scanning(image)
-                }
+                scanning(imageProxy)
             } catch (e: Exception) {
                 e.printStackTrace()
-            } finally {
-                imageProxy.close()
             }
         })
         var camera = cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)
     }
 
-    private fun scanning(image: InputImage) {
+    @SuppressLint("UnsafeOptInUsageError")
+    private fun scanning(imageProxy: ImageProxy) {
+        val mediaImage = imageProxy.image
+        if (mediaImage == null) {
+            imageProxy.close()
+            return
+        }
+        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(
                 Barcode.FORMAT_QR_CODE,
@@ -122,26 +122,14 @@ public class ScanningActivity : AppCompatActivity() {
                     val corners = barcode.cornerPoints
                     val rawValue = barcode.rawValue
                     Log.e(TAG, "scanner rawValue: $rawValue")
-                    // See API reference for complete list of supported types
-                    when (barcode.valueType) {
-                        Barcode.TYPE_WIFI -> {
-                            val ssid = barcode.wifi!!.ssid
-                            val password = barcode.wifi!!.password
-                            val type = barcode.wifi!!.encryptionType
-                        }
-                        Barcode.TYPE_URL -> {
-                            val title = barcode.url!!.title
-                            val url = barcode.url!!.url
-                        }
-                        Barcode.FORMAT_QR_CODE -> {
-                            Log.e(TAG, "scanner displayValue: ${barcode.displayValue}")
-                        }
-                    }
                 }
             }
             .addOnFailureListener {
                 // Task failed with an exception
                 Log.e(TAG, it.message ?: "Task failed with an exception")
+            }.addOnCompleteListener {
+                mediaImage.close()
+                imageProxy.close()
             }
     }
 }
