@@ -1,10 +1,15 @@
 package cn.mtjsoft.barcodescanning
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator.INFINITE
 import android.annotation.SuppressLint
 import android.media.Image
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -55,6 +60,11 @@ class ScanningActivity : AppCompatActivity() {
     private val zoomStep = 0.1f
 
     private lateinit var lowLightView: TextView
+    private lateinit var lineImageView: ImageView
+
+    private var widthPixels = 0
+    private var heightPixels = 0
+    private val animationSet = AnimatorSet()
 
     companion object {
     }
@@ -62,6 +72,8 @@ class ScanningActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
+        widthPixels = resources.displayMetrics.widthPixels
+        heightPixels = resources.displayMetrics.heightPixels
         ImmersionBar.with(this)
             .transparentStatusBar()  //透明状态栏，不写默认透明色
             .transparentNavigationBar()  //透明导航栏，不写默认黑色(设置此方法，fullScreen()方法自动为true)
@@ -73,6 +85,7 @@ class ScanningActivity : AppCompatActivity() {
     private fun initView() {
         previewView = findViewById(R.id.previewView)
         lowLightView = findViewById(R.id.tv_low_light)
+        lineImageView = findViewById(R.id.iv_scan_line)
         findViewById<TextView>(R.id.tv_open).setOnClickListener {
             enableTorch(true)
         }
@@ -80,6 +93,24 @@ class ScanningActivity : AppCompatActivity() {
             enableTorch(false)
         }
         findViewById<CustomGestureDetectorView>(R.id.gestureDetectorView).setCustomTouchListener(customTouchListener)
+        startScanLineAnimator()
+    }
+
+    @SuppressLint("Recycle")
+    private fun startScanLineAnimator() {
+        animationSet.cancel()
+        val alphaAnimator: ObjectAnimator = ObjectAnimator.ofFloat(lineImageView, "alpha", 0.2f, 1f, 1f, 0.2f)
+        alphaAnimator.repeatCount = INFINITE
+        val translationYAnimator: ObjectAnimator = ObjectAnimator.ofFloat(lineImageView, "translationY", 0f, heightPixels / 3f * 2)
+        translationYAnimator.repeatCount = INFINITE
+        animationSet.playTogether(alphaAnimator, translationYAnimator)
+        animationSet.duration = 3000
+        animationSet.interpolator = AccelerateDecelerateInterpolator()
+        animationSet.start()
+    }
+
+    private fun stopScanLineAnimator() {
+        animationSet.cancel()
     }
 
     /**
@@ -273,6 +304,7 @@ class ScanningActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        stopScanLineAnimator()
         enableTorch(false)
         super.onDestroy()
     }
