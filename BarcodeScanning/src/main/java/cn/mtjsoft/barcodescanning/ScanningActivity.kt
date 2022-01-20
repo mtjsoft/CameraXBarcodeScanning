@@ -13,8 +13,10 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import cn.mtjsoft.barcodescanning.interfaces.CustomTouchListener
 import cn.mtjsoft.barcodescanning.utils.ScanUtil
 import cn.mtjsoft.barcodescanning.utils.ScanUtil.toBitmap
+import cn.mtjsoft.barcodescanning.view.CustomGestureDetectorView
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -38,10 +40,19 @@ class ScanningActivity : AppCompatActivity() {
         1, 20, 3, TimeUnit.SECONDS,
         SynchronousQueue<Runnable>()
     )
-    private var torchState = TorchState.OFF
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private lateinit var previewView: PreviewView
     private var mCameraControl: CameraControl? = null
+    private var mCameraInfo: CameraInfo? = null
+
+    // 闪光灯开启/关闭
+    private var torchState = TorchState.OFF
+
+    // 缩放状态
+    private var mZoomState: ZoomState? = null
+
+    // 手势缩放步长
+    private val zoomStep = 0.1f
 
     private lateinit var lowLightView: TextView
 
@@ -68,22 +79,13 @@ class ScanningActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tv_close).setOnClickListener {
             enableTorch(false)
         }
+        findViewById<CustomGestureDetectorView>(R.id.gestureDetectorView).setCustomTouchListener(customTouchListener)
     }
 
     /**
-     * 闪光灯开启/关闭操作
+     * 请求 CameraProvider
+     * 检查 CameraProvider 可用性
      */
-    private fun enableTorch(open: Boolean) {
-        when {
-            open && torchState == TorchState.OFF -> {
-                mCameraControl?.enableTorch(true)
-            }
-            !open && torchState == TorchState.ON -> {
-                mCameraControl?.enableTorch(false)
-            }
-        }
-    }
-
     private fun preview() {
         // 请求 CameraProvider
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -106,9 +108,6 @@ class ScanningActivity : AppCompatActivity() {
         preview.setSurfaceProvider(previewView.surfaceProvider)
 
         val imageAnalysis = ImageAnalysis.Builder()
-            // enable the following line if RGBA output is needed.
-//            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-//            .setTargetResolution(Size(1280, 720))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
         imageAnalysis.setAnalyzer(threadPoolExecutor, { imageProxy ->
@@ -120,11 +119,19 @@ class ScanningActivity : AppCompatActivity() {
         })
         val camera = cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)
         mCameraControl = camera.cameraControl
-        camera.cameraInfo.torchState.observe(this, {
+        mCameraInfo = camera.cameraInfo
+        mZoomState = mCameraInfo?.zoomState?.value
+        mCameraInfo?.torchState?.observe(this, {
             torchState = it
+        })
+        mCameraInfo?.zoomState?.observe(this, {
+            mZoomState = it
         })
     }
 
+    /**
+     * 处理扫描结果
+     */
     @SuppressLint("UnsafeOptInUsageError")
     private fun scanning(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
@@ -182,6 +189,86 @@ class ScanningActivity : AppCompatActivity() {
             }
         } else {
             // 闪光灯已打开，关闭提示
+        }
+    }
+
+    /**
+     * 手势缩放 | 双击缩放 | 点击对焦
+     */
+    private val customTouchListener: CustomTouchListener = object : CustomTouchListener {
+        override fun zoom() {
+            // 双指手势放大
+            mZoomState?.apply {
+                if (zoomRatio < maxZoomRatio) {
+                    val curZoomRatio = zoomRatio + zoomStep
+                    if (curZoomRatio <= maxZoomRatio) {
+                        mCameraControl?.setZoomRatio(curZoomRatio)
+                    } else {
+                        mCameraControl?.setZoomRatio(maxZoomRatio)
+                    }
+                }
+            }
+        }
+
+        override fun ZoomOut() {
+            // 双指手势缩小
+            mZoomState?.apply {
+                if (zoomRatio > minZoomRatio) {
+                    val curZoomRatio = zoomRatio - zoomStep
+                    if (curZoomRatio >= minZoomRatio) {
+                        mCameraControl?.setZoomRatio(curZoomRatio)
+                    } else {
+                        mCameraControl?.setZoomRatio(minZoomRatio)
+                    }
+                }
+            }
+        }
+
+        override fun click(x: Float, y: Float) {
+            // 点击时，启用对焦
+            clickFocus(x, y)
+        }
+
+        override fun doubleClick(x: Float, y: Float) {
+            // 双击放大，或缩小
+            mZoomState?.apply {
+                if (linearZoom > 0) {
+                    mCameraControl?.setLinearZoom(0f)
+                } else {
+                    mCameraControl?.setLinearZoom(0.5f)
+                }
+            }
+        }
+
+        override fun longClick(x: Float, y: Float) {
+        }
+    }
+
+    /**
+     * 点按对焦
+     */
+    private fun clickFocus(x: Float, y: Float) {
+        val factory = SurfaceOrientedMeteringPointFactory(previewView.width.toFloat(), previewView.height.toFloat())
+        val point = factory.createPoint(x, y)
+        val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
+            .setAutoCancelDuration(3, TimeUnit.SECONDS)
+            .build()
+        mCameraControl?.startFocusAndMetering(action)?.addListener(Runnable {
+            // 对焦结束
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    /**
+     * 闪光灯开启/关闭操作
+     */
+    private fun enableTorch(open: Boolean) {
+        when {
+            open && torchState == TorchState.OFF -> {
+                mCameraControl?.enableTorch(true)
+            }
+            !open && torchState == TorchState.ON -> {
+                mCameraControl?.enableTorch(false)
+            }
         }
     }
 

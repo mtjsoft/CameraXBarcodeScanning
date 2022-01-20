@@ -1,4 +1,4 @@
-package cn.mtjsoft.barcodescanning.callback
+package cn.mtjsoft.barcodescanning.interfaces
 
 import java.io.Serializable
 

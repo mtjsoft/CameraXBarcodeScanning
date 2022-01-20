@@ -7,8 +7,8 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.core.app.ActivityCompat
-import cn.mtjsoft.barcodescanning.callback.Builder
-import cn.mtjsoft.barcodescanning.callback.ScanResultListener
+import cn.mtjsoft.barcodescanning.interfaces.Builder
+import cn.mtjsoft.barcodescanning.interfaces.ScanResultListener
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
