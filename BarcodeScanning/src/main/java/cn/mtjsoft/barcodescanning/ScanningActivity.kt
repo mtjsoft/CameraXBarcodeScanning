@@ -1,29 +1,29 @@
 package cn.mtjsoft.barcodescanning
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.AsyncTask
+import android.media.Image
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
+import androidx.camera.core.*
+import androidx.camera.core.impl.utils.MainThreadAsyncHandler
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import cn.mtjsoft.barcodescanning.utils.ScanUtil
+import cn.mtjsoft.barcodescanning.utils.ScanUtil.toBitmap
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.gyf.immersionbar.ImmersionBar
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 /**
  * @author mtj
@@ -31,20 +31,21 @@ import com.gyf.immersionbar.ImmersionBar
  * @desc
  * @email mtjsoft3@gmail.com
  */
-public class ScanningActivity : AppCompatActivity() {
+class ScanningActivity : AppCompatActivity() {
 
     private val TAG: String = "ScanningActivity"
-
+    private val threadPoolExecutor: ThreadPoolExecutor = ThreadPoolExecutor(
+        1, 20, 3, TimeUnit.SECONDS,
+        SynchronousQueue<Runnable>()
+    )
+    private var torchState = TorchState.OFF
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private lateinit var previewView: PreviewView
+    private var mCameraControl: CameraControl? = null
+
+    private lateinit var lowLightView: TextView
 
     companion object {
-        fun openScan(context: Context) {
-            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                return
-            }
-            context.startActivity(Intent(context, ScanningActivity::class.java))
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +61,27 @@ public class ScanningActivity : AppCompatActivity() {
 
     private fun initView() {
         previewView = findViewById(R.id.previewView)
+        lowLightView = findViewById(R.id.tv_low_light)
+        findViewById<TextView>(R.id.tv_open).setOnClickListener {
+            enableTorch(true)
+        }
+        findViewById<TextView>(R.id.tv_close).setOnClickListener {
+            enableTorch(false)
+        }
+    }
+
+    /**
+     * 闪光灯开启/关闭操作
+     */
+    private fun enableTorch(open: Boolean) {
+        when {
+            open && torchState == TorchState.OFF -> {
+                mCameraControl?.enableTorch(true)
+            }
+            !open && torchState == TorchState.ON -> {
+                mCameraControl?.enableTorch(false)
+            }
+        }
     }
 
     private fun preview() {
@@ -85,18 +107,22 @@ public class ScanningActivity : AppCompatActivity() {
 
         val imageAnalysis = ImageAnalysis.Builder()
             // enable the following line if RGBA output is needed.
-            // .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+//            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
 //            .setTargetResolution(Size(1280, 720))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
-        imageAnalysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, { imageProxy ->
+        imageAnalysis.setAnalyzer(threadPoolExecutor, { imageProxy ->
             try {
                 scanning(imageProxy)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         })
-        var camera = cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)
+        val camera = cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)
+        mCameraControl = camera.cameraControl
+        camera.cameraInfo.torchState.observe(this, {
+            torchState = it
+        })
     }
 
     @SuppressLint("UnsafeOptInUsageError")
@@ -106,11 +132,12 @@ public class ScanningActivity : AppCompatActivity() {
             imageProxy.close()
             return
         }
+        lowLight(mediaImage)
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(
                 Barcode.FORMAT_QR_CODE,
-                Barcode.FORMAT_AZTEC
+                Barcode.FORMAT_CODABAR
             )
             .build()
         val scanner = BarcodeScanning.getClient(options)
@@ -126,10 +153,40 @@ public class ScanningActivity : AppCompatActivity() {
             }
             .addOnFailureListener {
                 // Task failed with an exception
-                Log.e(TAG, it.message ?: "Task failed with an exception")
-            }.addOnCompleteListener {
+            }
+            .addOnCompleteListener {
+                Log.e(TAG, "scanner OnCompleteListener isSuccessful : ${it.isSuccessful}")
                 mediaImage.close()
                 imageProxy.close()
             }
+    }
+
+    /**
+     * 弱光环境处理
+     */
+    @SuppressLint("RestrictedApi")
+    private fun lowLight(mediaImage: Image) {
+        if (torchState == TorchState.OFF) {
+            val bitmap = mediaImage.toBitmap()
+            val isLowLight = bitmap?.run {
+                ScanUtil.isLowLight(this)
+            }
+            Log.e(TAG, "是否是弱光：$isLowLight")
+            if (isLowLight == true) {
+                // 弱光环境，提示开启闪光灯
+                MainThreadAsyncHandler.getInstance().post {
+                    lowLightView.visibility = View.VISIBLE
+                }
+            } else {
+                // 已变成非弱光环境，隐藏提示
+            }
+        } else {
+            // 闪光灯已打开，关闭提示
+        }
+    }
+
+    override fun onDestroy() {
+        enableTorch(false)
+        super.onDestroy()
     }
 }

@@ -1,11 +1,13 @@
 package cn.mtjsoft.cameraxbarcodescanning
 
 import android.Manifest
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import cn.mtjsoft.barcodescanning.ScanningActivity
+import cn.mtjsoft.barcodescanning.ScanningManager
+import cn.mtjsoft.barcodescanning.callback.Builder
+import cn.mtjsoft.barcodescanning.callback.ScanResultListener
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,7 +17,9 @@ class MainActivity : AppCompatActivity() {
         ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 100)
 
         findViewById<TextView>(R.id.openPreview).setOnClickListener {
-            ScanningActivity.openScan(this)
+            ScanningManager.instance.openScanningActivity(
+                this
+            )
         }
     }
 }
