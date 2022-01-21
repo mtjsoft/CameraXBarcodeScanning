@@ -6,6 +6,8 @@ import android.animation.ValueAnimator.INFINITE
 import android.annotation.SuppressLint
 import android.media.Image
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -13,18 +15,18 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
-import androidx.camera.core.impl.utils.MainThreadAsyncHandler
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
+import cn.mtjsoft.barcodescanning.config.Config
+import cn.mtjsoft.barcodescanning.extentions.screenHeight
+import cn.mtjsoft.barcodescanning.extentions.screenWidth
 import cn.mtjsoft.barcodescanning.interfaces.CustomTouchListener
 import cn.mtjsoft.barcodescanning.utils.ScanUtil
 import cn.mtjsoft.barcodescanning.utils.ScanUtil.toBitmap
+import cn.mtjsoft.barcodescanning.utils.SoundPoolUtil
 import cn.mtjsoft.barcodescanning.view.CustomGestureDetectorView
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.gyf.immersionbar.ImmersionBar
@@ -41,6 +43,7 @@ import java.util.concurrent.TimeUnit
 class ScanningActivity : AppCompatActivity() {
 
     private val TAG: String = "ScanningActivity"
+
     private val threadPoolExecutor: ThreadPoolExecutor = ThreadPoolExecutor(
         1, 20, 3, TimeUnit.SECONDS,
         SynchronousQueue<Runnable>()
@@ -59,30 +62,37 @@ class ScanningActivity : AppCompatActivity() {
     // 手势缩放步长
     private val zoomStep = 0.1f
 
+    // 是否开启扫码
+    @Volatile
+    private var scanEnable = true
+
+    private var config: Config = Config()
+
     private lateinit var lowLightView: TextView
     private lateinit var lineImageView: ImageView
+    private lateinit var mCustomGestureDetectorView: CustomGestureDetectorView
 
     private var widthPixels = 0
     private var heightPixels = 0
     private val animationSet = AnimatorSet()
 
     companion object {
+        val mainHandler = Handler(Looper.getMainLooper())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
-        widthPixels = resources.displayMetrics.widthPixels
-        heightPixels = resources.displayMetrics.heightPixels
-        ImmersionBar.with(this)
-            .transparentStatusBar()  //透明状态栏，不写默认透明色
-            .transparentNavigationBar()  //透明导航栏，不写默认黑色(设置此方法，fullScreen()方法自动为true)
-            .transparentBar().init()
+        ImmersionBar.with(this).transparentBar().init()
         initView()
+        SoundPoolUtil.instance.loadQrcodeCompletedWav(this)
         preview()
     }
 
     private fun initView() {
+        config = ScanningManager.instance.getConfig()
+        widthPixels = this.screenWidth
+        heightPixels = this.screenHeight
         previewView = findViewById(R.id.previewView)
         lowLightView = findViewById(R.id.tv_low_light)
         lineImageView = findViewById(R.id.iv_scan_line)
@@ -92,16 +102,19 @@ class ScanningActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tv_close).setOnClickListener {
             enableTorch(false)
         }
-        findViewById<CustomGestureDetectorView>(R.id.gestureDetectorView).setCustomTouchListener(customTouchListener)
+        mCustomGestureDetectorView = findViewById(R.id.gestureDetectorView)
+        mCustomGestureDetectorView.setCustomTouchListener(customTouchListener)
         startScanLineAnimator()
     }
 
     @SuppressLint("Recycle")
     private fun startScanLineAnimator() {
         animationSet.cancel()
-        val alphaAnimator: ObjectAnimator = ObjectAnimator.ofFloat(lineImageView, "alpha", 0.2f, 1f, 1f, 0.2f)
+        lineImageView.visibility = View.VISIBLE
+        val alphaAnimator: ObjectAnimator = ObjectAnimator.ofFloat(lineImageView, "alpha", 0.2f, 1f, 1f, 0f)
         alphaAnimator.repeatCount = INFINITE
-        val translationYAnimator: ObjectAnimator = ObjectAnimator.ofFloat(lineImageView, "translationY", 0f, heightPixels / 3f * 2)
+        val translationYAnimator: ObjectAnimator =
+            ObjectAnimator.ofFloat(lineImageView, "translationY", 0f, heightPixels / 3f * 2)
         translationYAnimator.repeatCount = INFINITE
         animationSet.playTogether(alphaAnimator, translationYAnimator)
         animationSet.duration = 3000
@@ -111,6 +124,7 @@ class ScanningActivity : AppCompatActivity() {
 
     private fun stopScanLineAnimator() {
         animationSet.cancel()
+        lineImageView.visibility = View.GONE
     }
 
     /**
@@ -143,12 +157,17 @@ class ScanningActivity : AppCompatActivity() {
             .build()
         imageAnalysis.setAnalyzer(threadPoolExecutor, { imageProxy ->
             try {
-                scanning(imageProxy)
+                if (scanEnable) {
+                    scanning(imageProxy)
+                } else {
+                    imageProxy.close()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
+                imageProxy.close()
             }
         })
-        val camera = cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)
+        val camera = cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis, preview)
         mCameraControl = camera.cameraControl
         mCameraInfo = camera.cameraInfo
         mZoomState = mCameraInfo?.zoomState?.value
@@ -172,37 +191,72 @@ class ScanningActivity : AppCompatActivity() {
         }
         lowLight(mediaImage)
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-        val options = BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(
-                Barcode.FORMAT_QR_CODE,
-                Barcode.FORMAT_CODABAR
-            )
-            .build()
-        val scanner = BarcodeScanning.getClient(options)
-        scanner.process(image)
+        ScanningManager.instance.getBarcodeScanningClient().process(image)
             .addOnSuccessListener { barcodes ->
-                // Task completed successfully
-                for (barcode in barcodes) {
-                    val bounds = barcode.boundingBox
-                    val corners = barcode.cornerPoints
-                    val rawValue = barcode.rawValue
-                    Log.e(TAG, "scanner rawValue: $rawValue")
+                when {
+                    barcodes.size == 1 -> {
+                        SoundPoolUtil.instance.playQrcodeCompleted()
+                        mCustomGestureDetectorView.addScanView(image, barcodes) {
+                        }
+                        resultOk(barcodes[0], 1000)
+                    }
+                    barcodes.size > 1 -> {
+                        SoundPoolUtil.instance.playQrcodeCompleted()
+                        // 标记多个码位置
+                        if (config.enabled) {
+                            mCustomGestureDetectorView.addScanView(image, barcodes) {
+                                resultOk(it)
+                            }
+                        } else {
+                            // 取最大范围的
+                            ScanningManager.instance.getRectMaxResult(barcodes)?.let {
+                                mCustomGestureDetectorView.addScanView(image, arrayListOf(it)) {
+                                }
+                                resultOk(it, 1000)
+                            }
+                        }
+                    }
                 }
             }
             .addOnFailureListener {
-                // Task failed with an exception
             }
             .addOnCompleteListener {
-                Log.e(TAG, "scanner OnCompleteListener isSuccessful : ${it.isSuccessful}")
+                Log.e(TAG, "scanner OnCompleteListener isSuccessful : ${it.isSuccessful}  resultSize: ${it.result.size}")
+                // 扫码成功，且有结果时，停止扫码
+                if (it.isSuccessful && it.result.isNotEmpty()) {
+                    scanEnable = false
+                    stopScanLineAnimator()
+                    // 解除绑定，停止预览
+                    cameraProviderFuture.get().unbindAll()
+                }
                 mediaImage.close()
                 imageProxy.close()
+                Log.e(TAG, "view.width : ${mCustomGestureDetectorView.width}  ,view.height: ${mCustomGestureDetectorView.height}")
+                Log.e(
+                    TAG,
+                    "image.width : ${image.width}  ,image.height: ${image.height} ,image.rotationDegrees: ${image.rotationDegrees}"
+                )
             }
+    }
+
+    /**
+     * 回调结果，关闭界面
+     */
+    private fun resultOk(barcode: Barcode?, timeMillis: Long = 0) {
+        barcode?.let {
+            mainHandler.postDelayed({
+                config.getScanResultListener()?.apply {
+                    onSuccessListener(it.rawValue)
+                    onCompleteListener(it.rawValue)
+                }
+                finish()
+            }, timeMillis)
+        }
     }
 
     /**
      * 弱光环境处理
      */
-    @SuppressLint("RestrictedApi")
     private fun lowLight(mediaImage: Image) {
         if (torchState == TorchState.OFF) {
             val bitmap = mediaImage.toBitmap()
@@ -212,7 +266,7 @@ class ScanningActivity : AppCompatActivity() {
             Log.e(TAG, "是否是弱光：$isLowLight")
             if (isLowLight == true) {
                 // 弱光环境，提示开启闪光灯
-                MainThreadAsyncHandler.getInstance().post {
+                mainHandler.post {
                     lowLightView.visibility = View.VISIBLE
                 }
             } else {

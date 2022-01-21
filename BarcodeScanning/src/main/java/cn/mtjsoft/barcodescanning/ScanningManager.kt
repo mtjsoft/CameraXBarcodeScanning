@@ -5,10 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Rect
+import android.graphics.RectF
 import android.net.Uri
 import androidx.core.app.ActivityCompat
-import cn.mtjsoft.barcodescanning.interfaces.Builder
+import cn.mtjsoft.barcodescanning.config.Config
 import cn.mtjsoft.barcodescanning.interfaces.ScanResultListener
+import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -31,16 +34,36 @@ class ScanningManager private constructor() {
         }
     }
 
+    private var config: Config = Config()
+
+    private var mBarcodeScanner: BarcodeScanner? = null
+
     /**
      * 打开预览扫描识别
      */
-    fun openScanningActivity(context: Context, builder: Builder = Builder()) {
+    fun openScanningActivity(context: Context, config: Config = Config()) {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             return
         }
+        this.config = config
         val intent = Intent(context, ScanningActivity::class.java)
-        intent.putExtra("builder", builder)
         context.startActivity(intent)
+    }
+
+    fun getConfig() = config
+
+    fun getBarcodeScanningClient(): BarcodeScanner {
+        if (mBarcodeScanner == null) {
+            val options = BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(
+                    Barcode.FORMAT_QR_CODE,
+                    Barcode.FORMAT_CODABAR,
+                    Barcode.FORMAT_AZTEC
+                )
+                .build()
+            mBarcodeScanner = BarcodeScanning.getClient(options)
+        }
+        return mBarcodeScanner!!
     }
 
     /**
@@ -75,14 +98,7 @@ class ScanningManager private constructor() {
      */
     private fun scanning(image: InputImage, scanResultListener: ScanResultListener? = null) {
         try {
-            val options = BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(
-                    Barcode.FORMAT_QR_CODE,
-                    Barcode.FORMAT_CODABAR
-                )
-                .build()
-            val scanner = BarcodeScanning.getClient(options)
-            scanner.process(image)
+            getBarcodeScanningClient().process(image)
                 .addOnSuccessListener { barcodes ->
                     // Task completed successfully
                     successResult(false, barcodes, scanResultListener)
@@ -90,10 +106,9 @@ class ScanningManager private constructor() {
                 .addOnFailureListener {
                     // Task failed with an exception
                     scanResultListener?.onFailureListener(it.message ?: "scan failed")
-                    scanResultListener?.onCompleteListener()
                 }
                 .addOnCompleteListener {
-                    if (it.isSuccessful) {
+                    if (it.isSuccessful && it.result.isNotEmpty()) {
                         successResult(true, it.result, scanResultListener)
                     } else {
                         scanResultListener?.onCompleteListener()
@@ -112,10 +127,25 @@ class ScanningManager private constructor() {
     ) {
         if (barcodes.isEmpty()) {
             scanResultListener?.onFailureListener("scan result isEmpty")
-            scanResultListener?.onCompleteListener()
             return
         }
         // 返回识别区域最大的
+        val barcode = getRectMaxResult(barcodes)
+        if (isComplete) {
+            scanResultListener?.onCompleteListener(barcode?.rawValue)
+        } else {
+            scanResultListener?.onSuccessListener(barcode?.rawValue)
+        }
+    }
+
+    /**
+     * 获取最大范围的条码结果
+     */
+    fun getRectMaxResult(barcodes: List<Barcode>): Barcode? {
+        // 返回识别区域最大的
+        if (barcodes.isEmpty()) {
+            return null
+        }
         var areaMax = 0
         var indexMax = 0
         barcodes.forEachIndexed { index, barcode ->
@@ -127,10 +157,25 @@ class ScanningManager private constructor() {
                 }
             }
         }
-        if (isComplete) {
-            scanResultListener?.onCompleteListener(barcodes[indexMax].rawValue)
-        } else {
-            scanResultListener?.onSuccessListener(barcodes[indexMax].rawValue)
-        }
+        return barcodes[indexMax]
     }
+
+    private var scaleX = 0f
+    private var scaleY = 0f
+    //初始化缩放比例
+    fun initScale(scanViewWidth: Int, scanViewHeight: Int, imageWidth: Int, imageHeight: Int) {
+        scaleX = scanViewWidth.toFloat() / imageWidth.toFloat()
+        scaleY = scanViewHeight.toFloat() / imageHeight.toFloat()
+    }
+
+    //将扫描的矩形换算为当前屏幕大小
+    fun translateRect(rect: Rect) = RectF(
+        translateX(rect.left.toFloat()),
+        translateY(rect.top.toFloat()),
+        translateX(rect.right.toFloat()),
+        translateY(rect.bottom.toFloat())
+    )
+
+    private fun translateX(x: Float): Float = x * scaleX
+    private fun translateY(y: Float): Float = y * scaleY
 }
