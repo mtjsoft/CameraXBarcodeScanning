@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">CameraXBarcodeScanning</string>
+    <string name="low_light_tip">弱光环境，请开启照明</string>
+    <string name="qr_bar_code">二维码 / 条码</string>
 </resources>

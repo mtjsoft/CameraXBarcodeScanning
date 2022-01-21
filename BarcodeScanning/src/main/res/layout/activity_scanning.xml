@@ -7,8 +7,8 @@
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/layoutBottom"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -16,8 +16,8 @@
     <cn.mtjsoft.barcodescanning.view.CustomGestureDetectorView
         android:id="@+id/gestureDetectorView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/layoutBottom"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -29,49 +29,79 @@
         android:layout_marginTop="80dp"
         android:scaleType="fitXY"
         android:src="@drawable/scan_line"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/tv_open"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="50dp"
-        android:padding="10dp"
-        android:text="开启"
-        android:textColor="@color/white"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/tv_close"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="50dp"
-        android:padding="10dp"
-        android:text="关闭"
-        android:textColor="@color/white"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/tv_low_light"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="50dp"
-        android:padding="10dp"
-        android:text="弱光环境，请开启照明"
-        android:textColor="@color/white"
-        android:textSize="14sp"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_tip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="30dp"
+        android:text="@string/qr_bar_code"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/layoutFunction"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutFunction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toTopOf="@+id/layoutBottom"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:id="@+id/iv_flash"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="30dp"
+            android:layout_marginBottom="40dp"
+            android:background="@drawable/shape_c_translucent"
+            android:scaleType="centerInside"
+            android:src="@drawable/icon_img"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+        <ImageView
+            android:id="@+id/iv_album"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginEnd="30dp"
+            android:layout_marginBottom="40dp"
+            android:background="@drawable/shape_c_translucent"
+            android:scaleType="centerInside"
+            android:src="@drawable/icon_img"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutBottom"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:background="@color/black"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="扫码"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

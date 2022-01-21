@@ -68,8 +68,10 @@ class ScanningActivity : AppCompatActivity() {
 
     private var config: Config = Config()
 
-    private lateinit var lowLightView: TextView
+    private lateinit var tipView: TextView
     private lateinit var lineImageView: ImageView
+    private lateinit var ivFlashImageView: ImageView
+    private lateinit var ivAlbumImageView: ImageView
     private lateinit var mCustomGestureDetectorView: CustomGestureDetectorView
 
     private var widthPixels = 0
@@ -83,7 +85,7 @@ class ScanningActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
-        ImmersionBar.with(this).transparentBar().init()
+        ImmersionBar.with(this).transparentStatusBar().init()
         initView()
         SoundPoolUtil.instance.loadQrcodeCompletedWav(this)
         preview()
@@ -94,37 +96,15 @@ class ScanningActivity : AppCompatActivity() {
         widthPixels = this.screenWidth
         heightPixels = this.screenHeight
         previewView = findViewById(R.id.previewView)
-        lowLightView = findViewById(R.id.tv_low_light)
+        tipView = findViewById(R.id.tv_tip)
         lineImageView = findViewById(R.id.iv_scan_line)
-        findViewById<TextView>(R.id.tv_open).setOnClickListener {
-            enableTorch(true)
-        }
-        findViewById<TextView>(R.id.tv_close).setOnClickListener {
-            enableTorch(false)
-        }
         mCustomGestureDetectorView = findViewById(R.id.gestureDetectorView)
         mCustomGestureDetectorView.setCustomTouchListener(customTouchListener)
-        startScanLineAnimator()
-    }
-
-    @SuppressLint("Recycle")
-    private fun startScanLineAnimator() {
-        animationSet.cancel()
-        lineImageView.visibility = View.VISIBLE
-        val alphaAnimator: ObjectAnimator = ObjectAnimator.ofFloat(lineImageView, "alpha", 0.2f, 1f, 1f, 0f)
-        alphaAnimator.repeatCount = INFINITE
-        val translationYAnimator: ObjectAnimator =
-            ObjectAnimator.ofFloat(lineImageView, "translationY", 0f, heightPixels / 3f * 2)
-        translationYAnimator.repeatCount = INFINITE
-        animationSet.playTogether(alphaAnimator, translationYAnimator)
-        animationSet.duration = 3000
-        animationSet.interpolator = AccelerateDecelerateInterpolator()
-        animationSet.start()
-    }
-
-    private fun stopScanLineAnimator() {
-        animationSet.cancel()
-        lineImageView.visibility = View.GONE
+        ivFlashImageView = findViewById(R.id.iv_flash)
+        ivAlbumImageView = findViewById(R.id.iv_album)
+        ivFlashImageView.setOnClickListener {
+            enableTorch(torchState == TorchState.OFF)
+        }
     }
 
     /**
@@ -177,6 +157,34 @@ class ScanningActivity : AppCompatActivity() {
         mCameraInfo?.zoomState?.observe(this, {
             mZoomState = it
         })
+        startScanLineAnimator()
+    }
+
+    /**
+     * 开始扫码动画
+     */
+    @SuppressLint("Recycle")
+    private fun startScanLineAnimator() {
+        animationSet.cancel()
+        lineImageView.visibility = View.VISIBLE
+        val alphaAnimator: ObjectAnimator =
+            ObjectAnimator.ofFloat(lineImageView, "alpha", 0.2f, 1f, 1f, 0f)
+        alphaAnimator.repeatCount = INFINITE
+        val translationYAnimator: ObjectAnimator =
+            ObjectAnimator.ofFloat(lineImageView, "translationY", 0f, heightPixels / 3f * 2)
+        translationYAnimator.repeatCount = INFINITE
+        animationSet.playTogether(alphaAnimator, translationYAnimator)
+        animationSet.duration = 3000
+        animationSet.interpolator = AccelerateDecelerateInterpolator()
+        animationSet.start()
+    }
+
+    /**
+     * 停止动画
+     */
+    private fun stopScanLineAnimator() {
+        animationSet.cancel()
+        lineImageView.visibility = View.GONE
     }
 
     /**
@@ -221,7 +229,10 @@ class ScanningActivity : AppCompatActivity() {
             .addOnFailureListener {
             }
             .addOnCompleteListener {
-                Log.e(TAG, "scanner OnCompleteListener isSuccessful : ${it.isSuccessful}  resultSize: ${it.result.size}")
+                Log.e(
+                    TAG,
+                    "scanner OnCompleteListener isSuccessful : ${it.isSuccessful}  resultSize: ${it.result.size}"
+                )
                 // 扫码成功，且有结果时，停止扫码
                 if (it.isSuccessful && it.result.isNotEmpty()) {
                     scanEnable = false
@@ -231,11 +242,6 @@ class ScanningActivity : AppCompatActivity() {
                 }
                 mediaImage.close()
                 imageProxy.close()
-                Log.e(TAG, "view.width : ${mCustomGestureDetectorView.width}  ,view.height: ${mCustomGestureDetectorView.height}")
-                Log.e(
-                    TAG,
-                    "image.width : ${image.width}  ,image.height: ${image.height} ,image.rotationDegrees: ${image.rotationDegrees}"
-                )
             }
     }
 
@@ -263,17 +269,22 @@ class ScanningActivity : AppCompatActivity() {
             val isLowLight = bitmap?.run {
                 ScanUtil.isLowLight(this)
             }
-            Log.e(TAG, "是否是弱光：$isLowLight")
             if (isLowLight == true) {
                 // 弱光环境，提示开启闪光灯
                 mainHandler.post {
-                    lowLightView.visibility = View.VISIBLE
+                    tipView.text = getString(R.string.low_light_tip)
                 }
             } else {
                 // 已变成非弱光环境，隐藏提示
+                mainHandler.post {
+                    tipView.text = getString(R.string.qr_bar_code)
+                }
             }
         } else {
             // 闪光灯已打开，关闭提示
+            mainHandler.post {
+                tipView.text = getString(R.string.qr_bar_code)
+            }
         }
     }
 
@@ -333,12 +344,15 @@ class ScanningActivity : AppCompatActivity() {
      * 点按对焦
      */
     private fun clickFocus(x: Float, y: Float) {
-        val factory = SurfaceOrientedMeteringPointFactory(previewView.width.toFloat(), previewView.height.toFloat())
+        val factory = SurfaceOrientedMeteringPointFactory(
+            previewView.width.toFloat(),
+            previewView.height.toFloat()
+        )
         val point = factory.createPoint(x, y)
         val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
             .setAutoCancelDuration(3, TimeUnit.SECONDS)
             .build()
-        mCameraControl?.startFocusAndMetering(action)?.addListener(Runnable {
+        mCameraControl?.startFocusAndMetering(action)?.addListener({
             // 对焦结束
         }, ContextCompat.getMainExecutor(this))
     }
