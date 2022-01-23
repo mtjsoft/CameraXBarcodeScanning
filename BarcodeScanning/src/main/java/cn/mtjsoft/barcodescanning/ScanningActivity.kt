@@ -4,7 +4,6 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator.INFINITE
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.media.Image
 import android.net.Uri
 import android.os.Bundle
@@ -36,10 +35,17 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.gyf.immersionbar.ImmersionBar
+import com.luck.picture.lib.basic.PictureSelector
+import com.luck.picture.lib.config.SelectMimeType
+import com.luck.picture.lib.config.SelectModeConfig
+import com.luck.picture.lib.entity.LocalMedia
+import com.luck.picture.lib.interfaces.OnResultCallbackListener
+import java.io.File
 import java.io.IOException
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+
 
 /**
  * @author mtj
@@ -130,9 +136,26 @@ class ScanningActivity : AppCompatActivity() {
             stopScanLineAnimator()
             // 解除绑定，停止预览
             cameraProviderFuture.get().unbindAll()
-            val intent = Intent("android.intent.action.GET_CONTENT")
-            intent.type = "image/*"
-            startActivityForResult(intent, 2) //打开相册
+            PictureSelector.create(this)
+                .openGallery(SelectMimeType.ofImage())
+                .setSelectionMode(SelectModeConfig.SINGLE)
+                .isDisplayCamera(false)
+                .isDirectReturnSingle(true)
+                .setImageEngine(GlideEngine.createGlideEngine())
+                .forResult(object : OnResultCallbackListener<LocalMedia?> {
+                    override fun onResult(result: ArrayList<LocalMedia?>?) {
+                        if (result.isNullOrEmpty() || result[0] == null) {
+                            notFindCodeAndGoOn()
+                            return
+                        }
+                        result[0]?.let { media ->
+                            scanningFile(Uri.fromFile(File(media.realPath)))
+                        }
+                    }
+                    override fun onCancel() {
+                        notFindCodeAndGoOn()
+                    }
+                })
         }
         fileScanTipView.setOnClickListener {
             notFindCodeAndGoOn()
@@ -164,15 +187,6 @@ class ScanningActivity : AppCompatActivity() {
         scanType = config.scanType
         findViewById<FrameLayout>(R.id.layoutBottom).setOnTouchListener { view, motionEvent ->
             mViewPager.onTouchEvent(motionEvent)
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK && requestCode == 2 && data?.data != null) {
-            data?.data?.let { scanningFile(it) }
-        } else {
-            notFindCodeAndGoOn()
         }
     }
 
