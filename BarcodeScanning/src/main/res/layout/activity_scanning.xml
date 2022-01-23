@@ -22,6 +22,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+
     <ImageView
         android:id="@+id/iv_scan_line"
         android:layout_width="match_parent"
@@ -60,9 +61,9 @@
             android:layout_height="50dp"
             android:layout_marginStart="30dp"
             android:layout_marginBottom="40dp"
-            android:background="@drawable/shape_c_translucent"
             android:scaleType="centerInside"
-            android:src="@drawable/icon_img"
+            android:src="@drawable/icon_off"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -74,7 +75,6 @@
             android:layout_height="50dp"
             android:layout_marginEnd="30dp"
             android:layout_marginBottom="40dp"
-            android:background="@drawable/shape_c_translucent"
             android:scaleType="centerInside"
             android:src="@drawable/icon_img"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -83,25 +83,59 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <TextView
+        android:id="@+id/tv_file_scane_tip"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/black"
+        android:gravity="center"
+        android:text="@string/file_scan_code_nodata"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/layoutBottom"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <FrameLayout
         android:id="@+id/layoutBottom"
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:background="@color/black"
+        android:clipChildren="false"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="扫码"
-            android:textColor="@color/white"
-            android:textSize="16sp"
+        <androidx.viewpager.widget.ViewPager
+            android:id="@+id/viewPager"
+            android:layout_width="100dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintStart_toStartOf="parent" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </FrameLayout>
+
+    <View
+        android:layout_width="4dp"
+        android:layout_height="4dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/shape_oval_white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageView
+        android:id="@+id/iv_close"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="50dp"
+        android:src="@drawable/icon_close"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

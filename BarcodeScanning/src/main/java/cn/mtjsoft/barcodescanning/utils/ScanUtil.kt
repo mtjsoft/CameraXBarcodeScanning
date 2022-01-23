@@ -41,7 +41,7 @@ object ScanUtil {
 
     /**
      * 是否是弱光环境
-     * 与黑色值进行比值，范围在 [0.9,1] 就认为是弱光环境，可以提示开启闪光灯
+     * 与黑色值进行比值，范围在 [0.8,1] 就认为是弱光环境，可以提示开启闪光灯
      */
     fun isLowLight(bitmap: Bitmap): Boolean {
         try {
@@ -52,7 +52,7 @@ object ScanUtil {
             val decimalFormat = DecimalFormat("0.00")
             val percent: String = decimalFormat.format(color.toFloat() / Color.BLACK)
             val floatPercent = percent.toFloat()
-            return floatPercent >= 0.9
+            return floatPercent >= 0.8
         } catch (e: Exception) {
         }
         return false

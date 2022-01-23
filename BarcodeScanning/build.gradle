@@ -41,6 +41,7 @@ dependencies {
 
     implementation 'com.gyf.immersionbar:immersionbar:3.0.0'
     implementation 'com.gyf.immersionbar:immersionbar-ktx:3.0.0'
+    implementation 'io.github.lucksiege:pictureselector:v3.0.3'
 
     // CameraX core library using the camera2 implementation
     // The following line is optional, as the core library is included indirectly by camera-camera2

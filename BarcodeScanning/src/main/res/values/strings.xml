@@ -1,5 +1,12 @@
 <resources>
     <string name="app_name">CameraXBarcodeScanning</string>
     <string name="low_light_tip">弱光环境，请开启照明</string>
-    <string name="qr_bar_code">二维码 / 条码</string>
+    <string name="qr_bar_code">二维码 / 条形码</string>
+    <string name="file_scan_code_nofile">未检测到要识别的图片\n点击继续</string>
+    <string name="file_scan_code_nodata">未识别到二维码/条形码\n点击继续</string>
+
+    <string-array name="scan_type">
+        <item>二维码</item>
+        <item>条形码</item>
+    </string-array>
 </resources>

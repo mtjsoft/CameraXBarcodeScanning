@@ -10,6 +10,7 @@ import android.graphics.RectF
 import android.net.Uri
 import androidx.core.app.ActivityCompat
 import cn.mtjsoft.barcodescanning.config.Config
+import cn.mtjsoft.barcodescanning.config.ScanType
 import cn.mtjsoft.barcodescanning.interfaces.ScanResultListener
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -36,13 +37,19 @@ class ScanningManager private constructor() {
 
     private var config: Config = Config()
 
-    private var mBarcodeScanner: BarcodeScanner? = null
+    private var mBarcodeScannerCodeBar: BarcodeScanner? = null
+
+    private var mBarcodeScannerQrCode: BarcodeScanner? = null
 
     /**
      * 打开预览扫描识别
      */
     fun openScanningActivity(context: Context, config: Config = Config()) {
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             return
         }
         this.config = config
@@ -52,18 +59,37 @@ class ScanningManager private constructor() {
 
     fun getConfig() = config
 
-    fun getBarcodeScanningClient(): BarcodeScanner {
-        if (mBarcodeScanner == null) {
-            val options = BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(
-                    Barcode.FORMAT_QR_CODE,
-                    Barcode.FORMAT_CODABAR,
-                    Barcode.FORMAT_AZTEC
-                )
-                .build()
-            mBarcodeScanner = BarcodeScanning.getClient(options)
+    fun getBarcodeScanningClient(@ScanType scanType: Int = ScanType.QR_CODE): BarcodeScanner {
+        when (scanType) {
+            ScanType.CODE_BAR -> {
+                if (mBarcodeScannerCodeBar == null) {
+                    val options = BarcodeScannerOptions.Builder()
+                        .setBarcodeFormats(
+                            Barcode.FORMAT_CODE_128,
+                            Barcode.FORMAT_CODE_39,
+                            Barcode.FORMAT_CODE_93,
+                            Barcode.FORMAT_CODABAR,
+                            Barcode.FORMAT_EAN_13,
+                            Barcode.FORMAT_EAN_8,
+                            Barcode.FORMAT_AZTEC
+                        )
+                        .build()
+                    mBarcodeScannerCodeBar = BarcodeScanning.getClient(options)
+                }
+                return mBarcodeScannerCodeBar!!
+            }
+            else -> {
+                if (mBarcodeScannerQrCode == null) {
+                    val options = BarcodeScannerOptions.Builder()
+                        .setBarcodeFormats(
+                            Barcode.FORMAT_QR_CODE
+                        )
+                        .build()
+                    mBarcodeScannerQrCode = BarcodeScanning.getClient(options)
+                }
+                return mBarcodeScannerQrCode!!
+            }
         }
-        return mBarcodeScanner!!
     }
 
     /**
@@ -162,6 +188,7 @@ class ScanningManager private constructor() {
 
     private var scaleX = 0f
     private var scaleY = 0f
+
     //初始化缩放比例
     fun initScale(scanViewWidth: Int, scanViewHeight: Int, imageWidth: Int, imageHeight: Int) {
         scaleX = scanViewWidth.toFloat() / imageWidth.toFloat()

@@ -1,6 +1,6 @@
 package cn.mtjsoft.barcodescanning.config
 
-import cn.mtjsoft.barcodescanning.interfaces.ConfigInterface
+import androidx.annotation.IntDef
 import cn.mtjsoft.barcodescanning.interfaces.ScanResultListener
 import java.io.Serializable
 
@@ -10,13 +10,19 @@ import java.io.Serializable
  * @desc
  * @email mtjsoft3@gmail.com
  */
-data class Config(val enabled: Boolean = true) : Serializable, ConfigInterface {
-    private var scanResultListener: ScanResultListener? = null
+data class Config(
+    val enabled: Boolean = true,
+    @ScanType
+    val scanType: Int = ScanType.QR_CODE,
+    val scanResultListener: ScanResultListener? = null
+) : Serializable {
+}
 
-    override fun setScanResultListener(scanResultListener: ScanResultListener): Config {
-        this.scanResultListener = scanResultListener
-        return this
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@IntDef(ScanType.QR_CODE, ScanType.CODE_BAR)
+annotation class ScanType {
+    companion object {
+        const val QR_CODE = 0
+        const val CODE_BAR = 1
     }
-
-    fun getScanResultListener() = this.scanResultListener
 }
