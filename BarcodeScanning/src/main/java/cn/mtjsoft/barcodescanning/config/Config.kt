@@ -11,9 +11,20 @@ import java.io.Serializable
  * @email mtjsoft3@gmail.com
  */
 data class Config(
+    /**
+     * 是否开启多码识别
+     * 不开启时，取最大范围的
+     */
     val enabled: Boolean = true,
+    /**
+     * 默认扫码类型
+     * 二维码 / 条形码
+     */
     @ScanType
     val scanType: Int = ScanType.QR_CODE,
+    /**
+     * 扫码回调
+     */
     val scanResultListener: ScanResultListener? = null
 ) : Serializable {
 }

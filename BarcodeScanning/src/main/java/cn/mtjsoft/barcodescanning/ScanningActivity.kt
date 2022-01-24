@@ -382,6 +382,7 @@ class ScanningActivity : AppCompatActivity() {
     }
 
     private fun notFindCodeAndGoOn() {
+        mCustomGestureDetectorView.removeAllViews()
         scanEnable = true
         // 绑定预览
         bindPreview(cameraProviderFuture.get())
