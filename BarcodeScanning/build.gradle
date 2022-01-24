@@ -3,14 +3,14 @@ plugins {
     id 'kotlin-android'
     id 'com.github.dcendents.android-maven'
 }
-group='com.github.mtjsoft'
+group = 'com.github.mtjsoft'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 30
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 31
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
 
@@ -36,14 +36,17 @@ dependencies {
 
     implementation 'androidx.core:core-ktx:1.3.2'
     implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation 'com.google.android.material:material:1.3.0'
-    testImplementation 'junit:junit:4.+'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 
     implementation 'com.gyf.immersionbar:immersionbar:3.0.0'
     implementation 'com.gyf.immersionbar:immersionbar-ktx:3.0.0'
-    implementation 'io.github.lucksiege:pictureselector:v3.0.3'
+    implementation ('io.github.lucksiege:pictureselector:v3.0.3') {
+        exclude group: 'androidx.appcompat', module: 'appcompat'
+        exclude group: 'androidx.activity', module: 'activity'
+        exclude group: 'androidx.core', module: 'core'
+        exclude group: 'androidx.constraintlayout', module: 'constraintlayout'
+    }
     implementation 'com.github.bumptech.glide:glide:4.12.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
 
@@ -54,11 +57,11 @@ dependencies {
     // If you want to additionally use the CameraX Lifecycle library
     implementation("androidx.camera:camera-lifecycle:1.0.2")
     // If you want to additionally use the CameraX VideoCapture library
-//    implementation("androidx.camera:camera-video:1.1.0-alpha12")
+    //    implementation("androidx.camera:camera-video:1.1.0-alpha12")
     // If you want to additionally use the CameraX View class
     implementation("androidx.camera:camera-view:1.0.0-alpha32")
     // If you want to additionally use the CameraX Extensions library
-//    implementation("androidx.camera:camera-extensions:1.0.0-alpha32")
+    //    implementation("androidx.camera:camera-extensions:1.0.0-alpha32")
 
     implementation 'com.google.mlkit:barcode-scanning:17.0.1'
 }

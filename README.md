@@ -33,11 +33,11 @@ allprojects {
 
 ```
 dependencies {
-	        implementation 'com.github.mtjsoft:BarcodeScanning:1.0.0'
+	        implementation 'com.github.mtjsoft:CameraXBarcodeScanning:1.0.0'
 	}
 ```
 
-[![](https://jitpack.io/v/mtjsoft/BarcodeScanning.svg)](https://jitpack.io/#mtjsoft/BarcodeScanning)
+[![](https://jitpack.io/v/mtjsoft/CameraXBarcodeScanning.svg)](https://jitpack.io/#mtjsoft/CameraXBarcodeScanning)
 
 
 # 3、使用前申请相关权限
