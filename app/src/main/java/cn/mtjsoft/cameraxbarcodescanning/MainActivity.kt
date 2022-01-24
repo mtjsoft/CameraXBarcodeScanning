@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.openPreview).setOnClickListener {
             ScanningManager.instance.openScanningActivity(
                 this,
-                Config(true, ScanType.QR_CODE, object : ScanResultListener {
+                Config(true, ScanType.QR_CODE, GlideEngine.createGlideEngine(), object : ScanResultListener {
                     override fun onSuccessListener(value: String?) {
                         resultView.text = "扫码结果： $value"
                     }

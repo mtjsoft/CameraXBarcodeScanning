@@ -1,6 +1,7 @@
 package cn.mtjsoft.barcodescanning.config
 
 import androidx.annotation.IntDef
+import cn.mtjsoft.barcodescanning.interfaces.ImageEngines
 import cn.mtjsoft.barcodescanning.interfaces.ScanResultListener
 import java.io.Serializable
 
@@ -22,6 +23,11 @@ data class Config(
      */
     @ScanType
     val scanType: Int = ScanType.QR_CODE,
+
+    /**
+     * 图库图片加载引擎
+     */
+    val mImageEngines: ImageEngines? = null,
     /**
      * 扫码回调
      */

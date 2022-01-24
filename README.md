@@ -36,7 +36,7 @@ allprojects {
 
 ```
 dependencies {
-	        implementation 'com.github.mtjsoft:CameraXBarcodeScanning:1.0.0'
+	        implementation 'com.github.mtjsoft:CameraXBarcodeScanning:1.1.0'
 	}
 ```
 
@@ -53,7 +53,7 @@ Manifest.permission.WRITE_EXTERNAL_STORAGE
 ```
 ScanningManager.instance.openScanningActivity(
                 this,
-                Config(true, ScanType.QR_CODE, object : ScanResultListener {
+                Config(true, ScanType.QR_CODE, GlideEngine.createGlideEngine(), object : ScanResultListener {
                     override fun onSuccessListener(value: String?) {
                         // 扫码结果： value
                     }
@@ -68,4 +68,35 @@ ScanningManager.instance.openScanningActivity(
                     }
                 })
             )
+
+ # Config 参数说明
+
+ Config(
+     /**
+      * 是否开启多码识别
+      * 不开启时，只取一个识别到的最大范围的
+      */
+     val enabled: Boolean = true,
+     /**
+      * 默认扫码类型
+      * 二维码 / 条形码
+      */
+     @ScanType
+     val scanType: Int = ScanType.QR_CODE,
+
+     /**
+      * 相册图片加载引擎（详见app demo中的 GlideEngine ）。null时会隐藏相册入口
+      */
+     val mImageEngines: ImageEngines? = null,
+     /**
+      * 扫码回调
+      */
+     val scanResultListener: ScanResultListener? = null
+ )
 ```
+# 5、版本说明
+
+V1.1.0
+--------------------------
+
+- 相册扫码的图片加载引擎外置。详见[GlideEngine](./app/src/main/java/cn/mtjsoft/cameraxbarcodescanning/GlideEngine.java)

@@ -1,9 +1,11 @@
 package cn.mtjsoft.barcodescanning
 
+import android.Manifest
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator.INFINITE
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.media.Image
 import android.net.Uri
 import android.os.Bundle
@@ -19,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.viewpager.widget.ViewPager
 import cn.mtjsoft.barcodescanning.adapter.ScanTypeAdapter
@@ -47,7 +50,6 @@ import java.io.IOException
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
-
 
 /**
  * @author mtj
@@ -133,7 +135,15 @@ class ScanningActivity : AppCompatActivity() {
         ivFlashImageView.setOnClickListener {
             enableTorch(torchState == TorchState.OFF)
         }
+        ivAlbumImageView.visibility = if (ScanningManager.instance.getConfig().mImageEngines == null) View.GONE else View.VISIBLE
         ivAlbumImageView.setOnClickListener {
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return@setOnClickListener
+            }
             scanEnable = false
             stopScanLineAnimator()
             // 解除绑定，停止预览
@@ -144,9 +154,9 @@ class ScanningActivity : AppCompatActivity() {
                 .isDisplayCamera(false)
                 .isDirectReturnSingle(true)
                 .setSelectorUIStyle(PictureSelectorStyle().apply {
-                    windowAnimationStyle = PictureWindowAnimationStyle(0,0)
+                    windowAnimationStyle = PictureWindowAnimationStyle(0, 0)
                 })
-                .setImageEngine(GlideEngine.createGlideEngine())
+                .setImageEngine(CustomGlideEngine.instance)
                 .forResult(object : OnResultCallbackListener<LocalMedia?> {
                     override fun onResult(result: ArrayList<LocalMedia?>?) {
                         if (result.isNullOrEmpty() || result[0] == null) {
@@ -157,6 +167,7 @@ class ScanningActivity : AppCompatActivity() {
                             scanningFile(Uri.fromFile(File(media.realPath)))
                         }
                     }
+
                     override fun onCancel() {
                         notFindCodeAndGoOn()
                     }
@@ -194,7 +205,6 @@ class ScanningActivity : AppCompatActivity() {
             mViewPager.onTouchEvent(motionEvent)
         }
     }
-
 
     /**
      * 请求 CameraProvider
@@ -338,7 +348,6 @@ class ScanningActivity : AppCompatActivity() {
                 imageProxy.close()
             }
     }
-
 
     /**
      * 文件扫码
