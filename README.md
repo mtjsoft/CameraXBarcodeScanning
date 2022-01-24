@@ -16,6 +16,9 @@
 ![效果](./images/1.jpg)![效果2](./images/2.jpg)
 ![效果3](./images/3.jpg)![效果4](./images/4.jpg)
 
+
+[体验APK下载](./app-debug.apk)
+
 #  如何使用
 
 # 1、在根目录 build.gradle 添加:
