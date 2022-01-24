@@ -40,6 +40,8 @@ import com.luck.picture.lib.config.SelectMimeType
 import com.luck.picture.lib.config.SelectModeConfig
 import com.luck.picture.lib.entity.LocalMedia
 import com.luck.picture.lib.interfaces.OnResultCallbackListener
+import com.luck.picture.lib.style.PictureSelectorStyle
+import com.luck.picture.lib.style.PictureWindowAnimationStyle
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.SynchronousQueue
@@ -141,6 +143,9 @@ class ScanningActivity : AppCompatActivity() {
                 .setSelectionMode(SelectModeConfig.SINGLE)
                 .isDisplayCamera(false)
                 .isDirectReturnSingle(true)
+                .setSelectorUIStyle(PictureSelectorStyle().apply {
+                    windowAnimationStyle = PictureWindowAnimationStyle(0,0)
+                })
                 .setImageEngine(GlideEngine.createGlideEngine())
                 .forResult(object : OnResultCallbackListener<LocalMedia?> {
                     override fun onResult(result: ArrayList<LocalMedia?>?) {

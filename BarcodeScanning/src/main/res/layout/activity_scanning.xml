@@ -22,7 +22,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-
     <ImageView
         android:id="@+id/iv_scan_line"
         android:layout_width="match_parent"
@@ -61,6 +60,7 @@
             android:layout_height="50dp"
             android:layout_marginStart="30dp"
             android:layout_marginBottom="40dp"
+            android:background="@drawable/shape_ovel_translucent"
             android:scaleType="centerInside"
             android:src="@drawable/icon_off"
             android:visibility="gone"
@@ -68,13 +68,13 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-
         <ImageView
             android:id="@+id/iv_album"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_marginEnd="30dp"
             android:layout_marginBottom="40dp"
+            android:background="@drawable/shape_ovel_translucent"
             android:scaleType="centerInside"
             android:src="@drawable/icon_img"
             app:layout_constraintBottom_toBottomOf="parent"

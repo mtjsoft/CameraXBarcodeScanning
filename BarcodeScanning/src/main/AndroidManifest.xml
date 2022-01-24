@@ -9,6 +9,7 @@
 
     <!-- 开启闪光灯权限 -->
     <uses-permission android:name="android.permission.FLASHLIGHT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <application>
         <activity android:name=".ScanningActivity"
             android:screenOrientation="portrait"

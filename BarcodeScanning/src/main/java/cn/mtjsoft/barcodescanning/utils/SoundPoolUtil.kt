@@ -1,7 +1,11 @@
 package cn.mtjsoft.barcodescanning.utils
 
 import android.content.Context
+import android.content.Context.VIBRATOR_MANAGER_SERVICE
+import android.content.Context.VIBRATOR_SERVICE
 import android.media.SoundPool
+import android.os.*
+import android.os.VibrationEffect.DEFAULT_AMPLITUDE
 import cn.mtjsoft.barcodescanning.R
 import java.util.*
 
@@ -14,6 +18,9 @@ import java.util.*
 class SoundPoolUtil private constructor() {
     private var soundPool: SoundPool? = null
     private var soundMap: HashMap<Int, Int>? = null
+
+    private var vibrator: Vibrator? = null
+    private var mVibratorManager: VibratorManager? = null
 
     companion object {
         val instance: SoundPoolUtil by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
@@ -32,6 +39,11 @@ class SoundPoolUtil private constructor() {
                 soundMap!![1] = it.load(context, R.raw.qrcode_completed_2, 1)
             }
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && mVibratorManager == null) {
+            mVibratorManager = context.getSystemService(VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+        } else if (vibrator == null) {
+            vibrator = context.getSystemService(VIBRATOR_SERVICE) as? Vibrator
+        }
     }
 
     /**
@@ -41,8 +53,25 @@ class SoundPoolUtil private constructor() {
         soundMap?.let {
             val soundID = it[1] ?: -1
             if (soundID != -1) {
-                soundPool?.play(soundID, 1f, 1f, 0, 0, 1f)
+                soundPool?.play(soundID, 1f, 1f, 1, 0, 1f)
             }
+        }
+        startVibrator()
+    }
+
+    private fun startVibrator() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && mVibratorManager != null) {
+                mVibratorManager?.vibrate(CombinedVibration.createParallel(VibrationEffect.createOneShot(100, DEFAULT_AMPLITUDE)))
+            } else if (vibrator != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator?.vibrate(VibrationEffect.createOneShot(100, DEFAULT_AMPLITUDE))
+                } else {
+                    vibrator?.vibrate(100)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
