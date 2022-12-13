@@ -11,19 +11,19 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.BitmapImageViewTarget;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
+import com.luck.picture.lib.engine.ImageEngine;
+import com.luck.picture.lib.interfaces.OnCallbackListener;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.graphics.drawable.RoundedBitmapDrawable;
 import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory;
-import cn.mtjsoft.barcodescanning.interfaces.ImageEngines;
-import cn.mtjsoft.barcodescanning.interfaces.OnCallbackDataListener;
 
 /**
  * @author：mtj
  * @describe：Glide加载引擎
  */
-public class GlideEngine implements ImageEngines {
+public class GlideEngine implements ImageEngine {
     /**
      * 加载图片
      *
@@ -39,40 +39,14 @@ public class GlideEngine implements ImageEngines {
         Glide.with(context).load(url).into(imageView);
     }
 
-    /**
-     * 加载指定url并返回bitmap
-     *
-     * @param context 上下文
-     * @param url     资源url
-     * @param call    回调接口
-     */
     @Override
-    public void loadImageBitmap(@NonNull Context context, @NonNull String url, int maxWidth, int maxHeight,
-        OnCallbackDataListener<Bitmap> call) {
+    public void loadImage(Context context, ImageView imageView, String s, int i, int i1) {
         if (!assertValidRequest(context)) {
             return;
         }
-        Glide.with(context).asBitmap().override(maxWidth, maxHeight).load(url).into(new CustomTarget<Bitmap>() {
-            @Override
-            public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                if (call != null) {
-                    call.onCall(resource);
-                }
-            }
-
-            @Override
-            public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                if (call != null) {
-                    call.onCall(null);
-                }
-            }
-
-            @Override
-            public void onLoadCleared(@Nullable Drawable placeholder) {
-
-            }
-        });
+        Glide.with(context).load(s).override(i, i1).into(imageView);
     }
+
 
     /**
      * 加载相册目录封面
@@ -87,21 +61,21 @@ public class GlideEngine implements ImageEngines {
             return;
         }
         Glide.with(context)
-            .asBitmap()
-            .load(url)
-            .override(180, 180)
-            .centerCrop()
-            .sizeMultiplier(0.5f)
-            .placeholder(cn.mtjsoft.barcodescanning.R.drawable.ps_image_placeholder)
-            .into(new BitmapImageViewTarget(imageView) {
-                @Override
-                protected void setResource(Bitmap resource) {
-                    RoundedBitmapDrawable circularBitmapDrawable = RoundedBitmapDrawableFactory.
-                        create(context.getResources(), resource);
-                    circularBitmapDrawable.setCornerRadius(8);
-                    imageView.setImageDrawable(circularBitmapDrawable);
-                }
-            });
+                .asBitmap()
+                .load(url)
+                .override(180, 180)
+                .centerCrop()
+                .sizeMultiplier(0.5f)
+                .placeholder(R.drawable.ps_image_placeholder)
+                .into(new BitmapImageViewTarget(imageView) {
+                    @Override
+                    protected void setResource(Bitmap resource) {
+                        RoundedBitmapDrawable circularBitmapDrawable = RoundedBitmapDrawableFactory.
+                                create(context.getResources(), resource);
+                        circularBitmapDrawable.setCornerRadius(8);
+                        imageView.setImageDrawable(circularBitmapDrawable);
+                    }
+                });
     }
 
     /**
@@ -117,11 +91,11 @@ public class GlideEngine implements ImageEngines {
             return;
         }
         Glide.with(context)
-            .load(url)
-            .override(200, 200)
-            .centerCrop()
-            .placeholder(cn.mtjsoft.barcodescanning.R.drawable.ps_image_placeholder)
-            .into(imageView);
+                .load(url)
+                .override(200, 200)
+                .centerCrop()
+                .placeholder(R.drawable.ps_image_placeholder)
+                .into(imageView);
     }
 
     @Override
@@ -158,16 +132,11 @@ public class GlideEngine implements ImageEngines {
     private GlideEngine() {
     }
 
-    private static GlideEngine instance;
+    private static final class InstanceHolder {
+        static final GlideEngine instance = new GlideEngine();
+    }
 
     public static GlideEngine createGlideEngine() {
-        if (null == instance) {
-            synchronized (GlideEngine.class) {
-                if (null == instance) {
-                    instance = new GlideEngine();
-                }
-            }
-        }
-        return instance;
+        return InstanceHolder.instance;
     }
 }

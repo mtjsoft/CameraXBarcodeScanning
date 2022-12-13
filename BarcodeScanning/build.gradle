@@ -11,8 +11,8 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 30
-        versionCode 1
-        versionName "1.0"
+        versionCode 130
+        versionName "1.3.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -41,12 +41,7 @@ dependencies {
 
     implementation 'com.geyifeng.immersionbar:immersionbar:3.2.2'
     implementation 'com.geyifeng.immersionbar:immersionbar-ktx:3.2.2'
-    implementation ('io.github.lucksiege:pictureselector:v3.0.3') {
-        exclude group: 'androidx.appcompat', module: 'appcompat'
-        exclude group: 'androidx.activity', module: 'activity'
-        exclude group: 'androidx.core', module: 'core'
-        exclude group: 'androidx.constraintlayout', module: 'constraintlayout'
-    }
+
 
     // CameraX core library using the camera2 implementation
     // The following line is optional, as the core library is included indirectly by camera-camera2

@@ -1,11 +1,9 @@
 package cn.mtjsoft.barcodescanning
 
-import android.Manifest
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator.INFINITE
 import android.annotation.SuppressLint
-import android.content.pm.PackageManager
 import android.media.Image
 import android.net.Uri
 import android.os.Bundle
@@ -21,13 +19,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.viewpager.widget.ViewPager
 import cn.mtjsoft.barcodescanning.adapter.ScanTypeAdapter
 import cn.mtjsoft.barcodescanning.config.Config
 import cn.mtjsoft.barcodescanning.extentions.screenHeight
 import cn.mtjsoft.barcodescanning.extentions.screenWidth
+import cn.mtjsoft.barcodescanning.interfaces.CallBackFileUri
 import cn.mtjsoft.barcodescanning.interfaces.CustomTouchListener
 import cn.mtjsoft.barcodescanning.transformer.ScanTypePageTransformer
 import cn.mtjsoft.barcodescanning.utils.ScanUtil
@@ -38,14 +36,6 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.gyf.immersionbar.ImmersionBar
-import com.luck.picture.lib.basic.PictureSelector
-import com.luck.picture.lib.config.SelectMimeType
-import com.luck.picture.lib.config.SelectModeConfig
-import com.luck.picture.lib.entity.LocalMedia
-import com.luck.picture.lib.interfaces.OnResultCallbackListener
-import com.luck.picture.lib.style.PictureSelectorStyle
-import com.luck.picture.lib.style.PictureWindowAnimationStyle
-import java.io.File
 import java.io.IOException
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
@@ -135,43 +125,20 @@ class ScanningActivity : AppCompatActivity() {
         ivFlashImageView.setOnClickListener {
             enableTorch(torchState == TorchState.OFF)
         }
-        ivAlbumImageView.visibility = if (ScanningManager.instance.getConfig().mImageEngines == null) View.GONE else View.VISIBLE
-        ivAlbumImageView.setOnClickListener {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return@setOnClickListener
-            }
-            scanEnable = false
-            stopScanLineAnimator()
-            // 解除绑定，停止预览
-            cameraProviderFuture.get().unbindAll()
-            PictureSelector.create(this)
-                .openGallery(SelectMimeType.ofImage())
-                .setSelectionMode(SelectModeConfig.SINGLE)
-                .isDisplayCamera(false)
-                .isDirectReturnSingle(true)
-                .setSelectorUIStyle(PictureSelectorStyle().apply {
-                    windowAnimationStyle = PictureWindowAnimationStyle(0, 0)
-                })
-                .setImageEngine(CustomGlideEngine.instance)
-                .forResult(object : OnResultCallbackListener<LocalMedia?> {
-                    override fun onResult(result: ArrayList<LocalMedia?>?) {
-                        if (result.isNullOrEmpty() || result[0] == null) {
-                            notFindCodeAndGoOn()
-                            return
-                        }
-                        result[0]?.let { media ->
-                            scanningFile(Uri.fromFile(File(media.realPath)))
-                        }
-                    }
 
-                    override fun onCancel() {
-                        notFindCodeAndGoOn()
-                    }
-                })
+        ivAlbumImageView.visibility =
+            if (ScanningManager.instance.getConfig().albumOnClickListener == null) View.GONE else View.VISIBLE
+        ivAlbumImageView.setOnClickListener { v ->
+            ScanningManager.instance.getConfig().albumOnClickListener?.onClick(v, object : CallBackFileUri{
+                override fun callBackUri(uri: Uri) {
+                    scanEnable = false
+                    stopScanLineAnimator()
+                    // 解除绑定，停止预览
+                    cameraProviderFuture.get().unbindAll();
+                    // 文件扫描
+                    scanningFile(uri)
+                }
+            })
         }
         fileScanTipView.setOnClickListener {
             notFindCodeAndGoOn()
@@ -234,7 +201,7 @@ class ScanningActivity : AppCompatActivity() {
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
-        imageAnalysis.setAnalyzer(threadPoolExecutor, { imageProxy ->
+        imageAnalysis.setAnalyzer(threadPoolExecutor) { imageProxy ->
             try {
                 if (scanEnable) {
                     scanning(imageProxy)
@@ -245,12 +212,12 @@ class ScanningActivity : AppCompatActivity() {
                 e.printStackTrace()
                 imageProxy.close()
             }
-        })
+        }
         val camera = cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis, preview)
         mCameraControl = camera.cameraControl
         mCameraInfo = camera.cameraInfo
         mZoomState = mCameraInfo?.zoomState?.value
-        mCameraInfo?.torchState?.observe(this, {
+        mCameraInfo?.torchState?.observe(this) {
             if (it == TorchState.OFF) {
                 ivFlashImageView.setImageResource(R.drawable.icon_off)
             } else {
@@ -258,10 +225,10 @@ class ScanningActivity : AppCompatActivity() {
                 ivFlashImageView.visibility = View.VISIBLE
             }
             torchState = it
-        })
-        mCameraInfo?.zoomState?.observe(this, {
+        }
+        mCameraInfo?.zoomState?.observe(this) {
             mZoomState = it
-        })
+        }
         startScanLineAnimator()
     }
 

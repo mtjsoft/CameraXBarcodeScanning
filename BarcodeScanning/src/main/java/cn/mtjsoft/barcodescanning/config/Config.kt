@@ -1,7 +1,7 @@
 package cn.mtjsoft.barcodescanning.config
 
 import androidx.annotation.IntDef
-import cn.mtjsoft.barcodescanning.interfaces.ImageEngines
+import cn.mtjsoft.barcodescanning.interfaces.AlbumOnClickListener
 import cn.mtjsoft.barcodescanning.interfaces.ScanResultListener
 import java.io.Serializable
 
@@ -25,15 +25,14 @@ data class Config(
     val scanType: Int = ScanType.QR_CODE,
 
     /**
-     * 图库图片加载引擎
+     * 相册点击回调
      */
-    val mImageEngines: ImageEngines? = null,
+    var albumOnClickListener: AlbumOnClickListener? = null,
     /**
      * 扫码回调
      */
     val scanResultListener: ScanResultListener? = null
-) : Serializable {
-}
+) : Serializable
 
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @IntDef(ScanType.QR_CODE, ScanType.CODE_BAR)
