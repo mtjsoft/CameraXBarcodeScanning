@@ -36,7 +36,7 @@ allprojects {
 
 ```
 dependencies {
-	        implementation 'com.github.mtjsoft:CameraXBarcodeScanning:1.3.0'
+	        implementation 'com.github.mtjsoft:CameraXBarcodeScanning:1.3.1'
 	}
 ```
 
@@ -111,6 +111,10 @@ Config(
 
 ```
 # 5、版本说明
+
+V1.3.1
+--------------------------
+- [修复#2](https://github.com/mtjsoft/CameraXBarcodeScanning/issues/2)
 
 V1.3.0
 --------------------------
