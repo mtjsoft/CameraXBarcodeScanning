@@ -66,7 +66,7 @@ class CustomGestureDetectorView @JvmOverloads constructor(
             return true
         }
 
-        override fun onScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+        override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             Log.i(TAG, "onScroll: 按下后拖动")
             // 大于两个触摸点
             if (e2.pointerCount >= 2) {
@@ -100,7 +100,7 @@ class CustomGestureDetectorView @JvmOverloads constructor(
             mCustomTouchListener?.longClick(e.x, e.y)
         }
 
-        override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
             Log.i(TAG, "onFling: 滑动后松开")
             currentDistance = 0f
             lastDistance = 0f

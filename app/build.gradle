@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 36
 
     defaultConfig {
         applicationId "cn.mtjsoft.cameraxbarcodescanning"
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdkVersion 36
         versionCode 1
         versionName "1.0"
 
@@ -29,6 +29,7 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    namespace 'cn.mtjsoft.cameraxbarcodescanning'
 }
 
 dependencies {

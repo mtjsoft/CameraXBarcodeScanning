@@ -36,7 +36,7 @@ allprojects {
 
 ```
 dependencies {
-	        implementation 'com.github.mtjsoft:CameraXBarcodeScanning:1.3.1'
+	        implementation 'com.github.mtjsoft:CameraXBarcodeScanning:1.3.2'
 	}
 ```
 
@@ -111,6 +111,10 @@ Config(
 
 ```
 # 5、版本说明
+V1.3.2
+--------------------------
+升级库适配Android15的16KB内存页机制
+- [修复#3](https://github.com/mtjsoft/CameraXBarcodeScanning/issues/3)
 
 V1.3.1
 --------------------------
